@@ -1,0 +1,207 @@
+{% extends 'quotations/base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Create{% endif %} Quotation - Godamwale{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{% if is_edit %}Edit Quotation {{ quotation.quotation_number }}{% else %}Create New Quotation{% endif %}</h2>
+</div>
+
+<form method="post" id="quotation-form" class="quotation-form">
+    {% csrf_token %}
+
+    {# Display non-field errors #}
+    {% if quotation_form.non_field_errors %}
+    <div class="alert alert-error">
+        {{ quotation_form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    {# Display location formset non-form errors #}
+    {% if location_formset.non_form_errors %}
+    <div class="alert alert-error">
+        <strong>Location Errors:</strong>
+        {{ location_formset.non_form_errors }}
+    </div>
+    {% endif %}
+
+    <div class="form-section">
+        <h3>Client Information</h3>
+        <div class="form-group">
+            {{ quotation_form.client.label_tag }}
+            {{ quotation_form.client }}
+            {{ quotation_form.client.errors }}
+            <button type="button" class="btn btn-sm btn-secondary" id="add-client-btn">+ Add New Client</button>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>Quotation Details</h3>
+        <div class="form-row">
+            <div class="form-group">
+                {{ quotation_form.validity_period.label_tag }}
+                {{ quotation_form.validity_period }}
+                {{ quotation_form.validity_period.errors }}
+            </div>
+            <div class="form-group">
+                {{ quotation_form.point_of_contact.label_tag }}
+                {{ quotation_form.point_of_contact }}
+                {{ quotation_form.point_of_contact.errors }}
+            </div>
+            <div class="form-group">
+                {{ quotation_form.status.label_tag }}
+                {{ quotation_form.status }}
+                {{ quotation_form.status.errors }}
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>Locations & Items</h3>
+        {{ location_formset.management_form }}
+
+        <div id="locations-container">
+            {% for location_form in location_formset %}
+            <div class="location-group" data-location-index="{{ forloop.counter0 }}">
+                <div class="location-header">
+                    <div class="form-group">
+                        <label>Location Name:</label>
+                        {{ location_form.location_name }}
+                        {% if location_form.location_name.errors %}
+                        <div class="field-error">{{ location_form.location_name.errors|first }}</div>
+                        {% endif %}
+                    </div>
+                    {{ location_form.order }}
+                    {{ location_form.id }}
+                    {{ location_form.DELETE }}
+                    <button type="button" class="btn btn-sm btn-danger remove-location-btn"
+                        data-location-index="{{ forloop.counter0 }}">Remove Location</button>
+                </div>
+
+                <div class="items-container" data-location-index="{{ forloop.counter0 }}">
+                    <h4>Items for this location:</h4>
+
+                    {# Item formset management forms for this location #}
+                    <input type="hidden" name="locations-{{ forloop.counter0 }}-items-TOTAL_FORMS"
+                        id="id_locations-{{ forloop.counter0 }}-items-TOTAL_FORMS" value="0">
+                    <input type="hidden" name="locations-{{ forloop.counter0 }}-items-INITIAL_FORMS"
+                        id="id_locations-{{ forloop.counter0 }}-items-INITIAL_FORMS" value="0">
+                    <input type="hidden" name="locations-{{ forloop.counter0 }}-items-MIN_NUM_FORMS"
+                        id="id_locations-{{ forloop.counter0 }}-items-MIN_NUM_FORMS" value="0">
+                    <input type="hidden" name="locations-{{ forloop.counter0 }}-items-MAX_NUM_FORMS"
+                        id="id_locations-{{ forloop.counter0 }}-items-MAX_NUM_FORMS" value="1000">
+
+                    {# Items will be dynamically populated #}
+                    {# Initial empty structure for template cloning #}
+                    <div class="item-row" data-row-index="0" style="display:none;">
+                        <div class="item-fields">
+                            <div class="form-group">
+                                <label>Item Description</label>
+                                <select name="__prefix__-item_description" class="form-control item-description"
+                                    disabled></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Custom Description</label>
+                                <input type="text" name="__prefix__-custom_description" class="form-control"
+                                    placeholder="Optional custom description" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Unit Cost (₹)</label>
+                                <input type="text" name="__prefix__-unit_cost" class="form-control unit-cost"
+                                    placeholder="At actual" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="text" name="__prefix__-quantity" class="form-control quantity"
+                                    placeholder="At actual" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Total (₹)</label>
+                                <input type="text" class="form-control item-total" readonly value="0.00" disabled>
+                            </div>
+                            <div class="form-group">
+                                <input type="checkbox" name="__prefix__-DELETE" id="__prefix__-DELETE" disabled>
+                                <label for="__prefix__-DELETE">Delete</label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="__prefix__-order" value="0" disabled>
+                        <input type="hidden" name="__prefix__-id" value="" disabled>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-secondary add-item-btn"
+                    data-location-index="{{ forloop.counter0 }}">+ Add Item to Location</button>
+
+                <div class="location-totals">
+                    <h4>Location Totals:</h4>
+                    <div class="totals-display">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span class="location-subtotal" data-location-index="{{ forloop.counter0 }}">₹ 0.00</span>
+                        </div>
+                        <div class="total-row">
+                            <span>GST @ 18%:</span>
+                            <span class="location-gst" data-location-index="{{ forloop.counter0 }}">₹ 0.00</span>
+                        </div>
+                        <div class="total-row grand-total">
+                            <span>GRAND TOTAL:</span>
+                            <span class="location-grand-total" data-location-index="{{ forloop.counter0 }}">₹
+                                0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" class="btn btn-primary" id="add-location-btn">+ Add Location</button>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% if is_edit %}Update{% else %}Create{% endif %}
+            Quotation</button>
+        <a href="{% url 'quotation_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<!-- Client Modal (for adding new client) -->
+<div id="client-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>Add New Client</h3>
+        <form id="client-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Client Name:</label>
+                <input type="text" name="client_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Company Name:</label>
+                <input type="text" name="company_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Contact Number:</label>
+                <input type="text" name="contact_number" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Address:</label>
+                <textarea name="address" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Add Client</button>
+                <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'quotations/js/quotation_form.js' %}?v=12"></script>
+{% endblock %}

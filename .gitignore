@@ -1,0 +1,34 @@
+# Security
+.env
+
+# Python
+*.pyc
+__pycache__/
+*.log
+
+# Database
+*.sqlite3
+db.sqlite3
+
+# Virtual Env
+venv/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Static/Media
+media/
+staticfiles/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Generated reports (if any leak outside media)
+*.pdf
+# But keep the template!
+!Godamwale-Quotation-Template.docx
+

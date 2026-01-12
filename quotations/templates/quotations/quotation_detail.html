@@ -1,0 +1,132 @@
+{% extends 'quotations/base.html' %}
+
+{% block title %}{{ quotation.quotation_number }} - Godamwale{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Quotation {{ quotation.quotation_number }}</h2>
+        <span class="status-badge status-{{ quotation.status }}">{{ quotation.get_status_display }}</span>
+    </div>
+    <div class="header-actions">
+        {% if quotation.status == 'draft' %}
+        <a href="{% url 'quotation_update' quotation.pk %}" class="btn btn-secondary">Edit</a>
+        {% endif %}
+        <a href="{% url 'download_docx' quotation.pk %}" class="btn btn-primary">Download DOCX</a>
+        <a href="{% url 'download_pdf' quotation.pk %}" class="btn btn-primary">Download PDF</a>
+        <a href="{% url 'send_email' quotation.pk %}" class="btn btn-success">Send Email</a>
+    </div>
+</div>
+
+<div class="detail-container">
+    <div class="detail-section">
+        <h3>Client Information</h3>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <label>Client Name:</label>
+                <span>{{ quotation.client.client_name }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Company:</label>
+                <span>{{ quotation.client.company_name }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Email:</label>
+                <span>{{ quotation.client.email }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Contact:</label>
+                <span>{{ quotation.client.contact_number }}</span>
+            </div>
+            <div class="detail-item full-width">
+                <label>Address:</label>
+                <span>{{ quotation.client.address }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3>Quotation Details</h3>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <label>Date:</label>
+                <span>{{ quotation.date|date:"d M Y" }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Valid Until:</label>
+                <span>{{ quotation.validity_date|date:"d M Y" }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Point of Contact:</label>
+                <span>{{ quotation.point_of_contact }}</span>
+            </div>
+            <div class="detail-item">
+                <label>Created By:</label>
+                <span>{{ quotation.created_by.username }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3>Locations and Items</h3>
+        {% for location in locations %}
+        <div class="location-section" style="margin-bottom: 30px;">
+            <h4>{{ location.location_name }}</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Unit Cost</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in location.items.all %}
+                    <tr>
+                        <td>{{ item.display_description }}</td>
+                        <td class="text-right">{{ item.unit_cost }}</td>
+                        <td class="text-right">{{ item.quantity }}</td>
+                        <td class="text-right">{% if item.is_calculated %}{{ item.total|floatformat:2 }}{% else %}N/A{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
+                        <td class="text-right"><strong>{{ location.subtotal|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>GST @ 18%:</strong></td>
+                        <td class="text-right"><strong>{{ location.gst_amount|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr class="grand-total-row">
+                        <td colspan="3" class="text-right"><strong>GRAND TOTAL:</strong></td>
+                        <td class="text-right"><strong>{{ location.grand_total|floatformat:2 }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if audit_logs %}
+    <div class="detail-section">
+        <h3>Recent Activity</h3>
+        <div class="audit-trail">
+            {% for log in audit_logs %}
+            <div class="audit-entry">
+                <span class="audit-action">{{ log.get_action_display }}</span>
+                <span class="audit-user">by {{ log.user.username }}</span>
+                <span class="audit-time">{{ log.timestamp|date:"d M Y H:i" }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="action-footer">
+    <a href="{% url 'quotation_list' %}" class="btn btn-secondary">Back to List</a>
+</div>
+{% endblock %}
