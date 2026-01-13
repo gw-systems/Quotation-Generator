@@ -130,6 +130,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Quotation-specific settings
 QUOTATION_TEMPLATE_PATH = BASE_DIR / 'quotations' / 'templates' / 'docx' / 'Godamwale-Quotation-Template.docx'
+
+# Google Docs Template Configuration
+USE_GOOGLE_DOCS_TEMPLATE = config('USE_GOOGLE_DOCS_TEMPLATE', default=False, cast=bool)
+GOOGLE_DOCS_TEMPLATE_ID = config('GOOGLE_DOCS_TEMPLATE_ID', default='')
+GOOGLE_SERVICE_ACCOUNT_FILE = config('GOOGLE_SERVICE_ACCOUNT_FILE', default='google_credentials.json')
+
 QUOTATION_NUMBER_PREFIX = 'GW-Q-'
 DEFAULT_VALIDITY_PERIOD = 30  # days
 DEFAULT_GST_RATE = 18  # percentage

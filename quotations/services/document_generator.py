@@ -11,6 +11,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from django.conf import settings
 from decimal import Decimal
+from .template_service import GoogleTemplateService
 
 
 class QuotationDocxGenerator:
@@ -25,7 +26,17 @@ class QuotationDocxGenerator:
         """
         self.quotation = quotation
         self.client = quotation.client
-        self.template_path = settings.QUOTATION_TEMPLATE_PATH
+        
+        # Determine template path (Google Docs or Local)
+        if settings.USE_GOOGLE_DOCS_TEMPLATE:
+            try:
+                template_service = GoogleTemplateService()
+                self.template_path = template_service.get_template_path()
+            except Exception:
+                # Fallback to local
+                self.template_path = settings.QUOTATION_TEMPLATE_PATH
+        else:
+            self.template_path = settings.QUOTATION_TEMPLATE_PATH
         
     def generate(self, output_path=None):
         """

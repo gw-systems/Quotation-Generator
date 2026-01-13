@@ -1,5 +1,6 @@
 # Security
 .env
+google_credentials.json
 
 # Python
 *.pyc
