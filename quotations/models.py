@@ -10,7 +10,7 @@ class Client(models.Model):
     client_name = models.CharField(max_length=200, verbose_name="Client Name")
     company_name = models.CharField(max_length=200, verbose_name="Company Name")
     email = models.EmailField(verbose_name="Email Address")
-    contact_number = models.CharField(max_length=20, verbose_name="Contact Number")
+    contact_number = models.CharField(max_length=10, verbose_name="Contact Number")
     address = models.TextField(verbose_name="Address")
     
     created_at = models.DateTimeField(auto_now_add=True)
