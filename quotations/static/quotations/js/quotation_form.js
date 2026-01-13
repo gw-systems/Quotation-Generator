@@ -421,16 +421,24 @@ function addItemToLocation(e) {
     const prefix = `locations-${locationIndex}-items-${itemIndex}`;
     updateItemFormPrefix(newItem, prefix);
 
-    // Populate item description - set to empty/placeholder initially
-    const itemDescSelect = newItem.querySelector('.item-description');
-    const itemDescText = newItem.querySelector('.item-description-text');
+    // Enable all inputs (template has them disabled to prevent submission)
+    newItem.querySelectorAll('input, select, textarea').forEach(input => {
+        input.disabled = false;
+    });
 
-    if (itemDescSelect && itemDescText) {
-        // Leave empty - user would need to manually set if needed
-        itemDescSelect.value = '';
-        itemDescText.textContent = '(Select item type)';
-        itemDescText.style.fontStyle = 'italic';
-        itemDescText.style.color = '#6c757d';
+    // Populate item description - show dropdown for manually added items
+    const itemDescSelect = newItem.querySelector('.item-description-select');
+    const itemDescText = newItem.querySelector('.item-description-text');
+    const itemDescHidden = newItem.querySelector('.item-description');
+
+    if (itemDescSelect && itemDescText && itemDescHidden) {
+        // Hide the static text and show the dropdown
+        itemDescText.style.display = 'none';
+        itemDescSelect.style.display = 'block';
+        itemDescSelect.disabled = false;
+
+        // Ensure hidden input is also initially empty
+        itemDescHidden.value = '';
     }
 
     // Clear values
@@ -556,6 +564,30 @@ function attachItemEventListeners(itemRow, locationIndex) {
                 // We need to update management form and totals
                 updateItemManagementForm(locationIndex);
                 calculateLocationTotals(locationIndex);
+            }
+        });
+    }
+
+    // Handle manual item description selection
+    const itemDescSelect = itemRow.querySelector('.item-description-select');
+    const itemDescHidden = itemRow.querySelector('.item-description');
+    const storageUnitTypeSelect = itemRow.querySelector('.storage-unit-type');
+
+    if (itemDescSelect && itemDescHidden) {
+        itemDescSelect.addEventListener('change', function () {
+            const selectedValue = this.value;
+            itemDescHidden.value = selectedValue;
+
+            // Handle storage_charges special case for manual items
+            if (storageUnitTypeSelect) {
+                if (selectedValue === 'storage_charges') {
+                    storageUnitTypeSelect.style.display = 'block';
+                    storageUnitTypeSelect.disabled = false;
+                    storageUnitTypeSelect.value = 'per_pallet'; // Default value
+                } else {
+                    storageUnitTypeSelect.style.display = 'none';
+                    storageUnitTypeSelect.disabled = true;
+                }
             }
         });
     }

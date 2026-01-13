@@ -139,6 +139,17 @@
                             <div class="col-md-4">
                                 <label class="form-label small text-muted mb-1">Description</label>
                                 <div class="form-control form-control-sm bg-light item-description-text" style="height: auto; min-height: 31px; display: flex; align-items: center;" disabled></div>
+                                <select class="form-select form-select-sm item-description-select" style="display: none;" disabled>
+                                    <option value="" selected disabled>Select item type</option>
+                                    <option value="storage_charges">Storage Charges</option>
+                                    <option value="inbound_handling">Inbound Handling</option>
+                                    <option value="outbound_handling">Outbound Handling</option>
+                                    <option value="pick_pack">Pick & Pack</option>
+                                    <option value="packaging_material">Packaging Material</option>
+                                    <option value="labelling_services">Labelling Services</option>
+                                    <option value="wms_platform">WMS Platform Access</option>
+                                    <option value="value_added">Value-Added Services</option>
+                                </select>
                                 <input type="hidden" name="__prefix__-item_description" class="item-description" disabled>
                                 <!-- Unit type dropdown for storage charges -->
                                 <select name="__prefix__-storage_unit_type" class="form-select form-select-sm mt-1 storage-unit-type" style="display: none;" disabled>

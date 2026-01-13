@@ -44,6 +44,7 @@ class QuotationDocxGenerator:
         self._populate_client_details(doc)
         self._populate_quotation_summary(doc)
         self._populate_pricing_sections(doc)
+        self._populate_acceptance_section(doc)
         
         # Determine output path
         if not output_path:
@@ -514,6 +515,23 @@ class QuotationDocxGenerator:
             table.style = 'Table Grid'
         except:
             pass
+
+    def _populate_acceptance_section(self, doc):
+        """Populate acceptance section with company name, preserving styling"""
+        # The line "For Client:" is in the last table of the template (Table 4)
+        for table in reversed(doc.tables):
+            for row in table.rows:
+                for cell in row.cells:
+                    # Search specifically within paragraphs and runs to preserve styling
+                    for paragraph in cell.paragraphs:
+                        if "For Client:" in paragraph.text:
+                            for run in paragraph.runs:
+                                if "For Client:" in run.text:
+                                    # Replace text within the run to keep existing formatting (bold, color, size)
+                                    run.text = run.text.replace("For Client:", f"For {self.client.company_name}:")
+                                    return
+
+
 
 
 def generate_quotation_docx(quotation):
