@@ -5,6 +5,8 @@ import os
 import copy
 from docx import Document
 from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from django.conf import settings
@@ -166,6 +168,7 @@ class QuotationDocxGenerator:
         # Update the header with first location name
         if pricing_header_idx >= 0:
             doc.paragraphs[pricing_header_idx].text = f"PRICING DETAILS – {first_location.location_name.upper()}"
+            doc.paragraphs[pricing_header_idx].paragraph_format.keep_with_next = True
         
         # Populate first location's table
         self._populate_table_with_items(first_pricing_table, first_location)
@@ -193,6 +196,9 @@ class QuotationDocxGenerator:
                 original_header = doc.paragraphs[pricing_header_idx]._element
                 if original_header.pPr is not None:
                     p.append(copy.deepcopy(original_header.pPr))
+                    # Remove pageBreakBefore if present to avoid forced breaks
+                    if p.pPr.pageBreakBefore is not None:
+                        p.pPr.remove(p.pPr.pageBreakBefore)
             
             r = OxmlElement('w:r')
             t = OxmlElement('w:t')
@@ -286,6 +292,11 @@ class QuotationDocxGenerator:
             row = table.rows[header_rows_count + i]
             self._fill_item_row(row, item)
             
+        # Ensure header row keeps with next
+        for cell in table.rows[0].cells:
+            for para in cell.paragraphs:
+                para.paragraph_format.keep_with_next = True
+            
         # Update totals
         self._update_totals_in_table(table, location)
     
@@ -300,6 +311,12 @@ class QuotationDocxGenerator:
             if target_row_idx < len(table.rows):
                 row = table.rows[target_row_idx]
                 self._fill_item_row(row, item)
+
+        # Ensure header row keeps with next (for the first table too)
+        if len(table.rows) > 0:
+            for cell in table.rows[0].cells:
+                for para in cell.paragraphs:
+                    para.paragraph_format.keep_with_next = True
         
         # Update totals rows
         self._update_totals_in_table(table, location)
@@ -308,50 +325,121 @@ class QuotationDocxGenerator:
         """Fill a table row with item data"""
         cells = row.cells
         
+        # Helper to set alignment and spacing
+        def format_cell(cell, text, align='LEFT'):
+            cell.text = text
+            # Set alignment
+            for para in cell.paragraphs:
+                if align == 'CENTER':
+                    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                elif align == 'RIGHT':
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                else:
+                    para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                
+                # Set spacing (approx 6pt)
+                para_format = para.paragraph_format
+                para_format.space_before = Pt(4)
+                para_format.space_after = Pt(4)
+                para_format.keep_with_next = True
+
         # Column 0: Description
-        cells[0].text = item.display_description
+        format_cell(cells[0], item.display_description, 'LEFT')
         
         # Column 1: Unit Cost
         if str(item.unit_cost).lower() == 'at actual':
-            cells[1].text = "At Actual"
+            format_cell(cells[1], "At Actual", 'CENTER')
         else:
             try:
                 cost = Decimal(str(item.unit_cost))
-                cells[1].text = f"₹ {cost:,.2f}"
+                format_cell(cells[1], f"{cost:,.2f}", 'CENTER')
             except:
-                cells[1].text = str(item.unit_cost)
+                format_cell(cells[1], str(item.unit_cost), 'CENTER')
         
         # Column 2: Quantity
         if str(item.quantity).lower() == 'at actual':
-            cells[2].text = "At Actual"
+            format_cell(cells[2], "At Actual", 'CENTER')
         else:
-            cells[2].text = str(item.quantity)
+            format_cell(cells[2], str(item.quantity), 'CENTER')
         
         # Column 3: Total
         if item.is_calculated:
-            cells[3].text = f"₹ {item.total:,.2f}"
+            format_cell(cells[3], f"{item.total:,.2f}", 'CENTER')
         else:
-            cells[3].text = "N/A"
+            format_cell(cells[3], "N/A", 'CENTER')
     
     def _update_totals_in_table(self, table, location):
         """Update subtotal, GST, and grand total rows"""
+        
+        def set_cell_background(cell, color_hex):
+            """Helper to set cell background color"""
+            shading_elm = OxmlElement('w:shd')
+            shading_elm.set(qn('w:fill'), color_hex)
+            cell._element.get_or_add_tcPr().append(shading_elm)
+
         for row in table.rows:
             if len(row.cells) >= 4:
-                first_cell_text = row.cells[0].text.lower().strip()
-                
                 # Check each cell for total keywords
+                row_type = None
                 for cell in row.cells:
                     cell_text = cell.text.lower().strip()
                     if 'subtotal' in cell_text or 'sub-total' in cell_text:
-                        # Find the last cell and set subtotal
-                        row.cells[-1].text = f"₹ {location.subtotal:,.2f}"
+                        row_type = 'subtotal'
                         break
                     elif 'gst' in cell_text:
-                        row.cells[-1].text = f"₹ {location.gst_amount:,.2f}"
+                        row_type = 'gst'
                         break
                     elif 'grand total' in cell_text:
-                        row.cells[-1].text = f"₹ {location.grand_total:,.2f}"
+                        row_type = 'grand_total'
                         break
+                
+                if row_type == 'subtotal':
+                    # Find the last cell and set subtotal
+                    row.cells[-1].text = f"{location.subtotal:,.2f}"
+                    row.cells[-1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    row.cells[-1].vertical_alignment = WD_ALIGN_VERTICAL.CENTER  # Vertical Center
+                    for run in row.cells[-1].paragraphs[0].runs:
+                        run.font.size = Pt(11)
+                    
+                    # Ensure background is White (FFFFFF) or 'auto'
+                    for cell in row.cells:
+                        set_cell_background(cell, 'FFFFFF')
+                    
+                    # Keep with next (GST)
+                    for cell in row.cells:
+                        for para in cell.paragraphs:
+                            para.paragraph_format.keep_with_next = True
+                        
+                elif row_type == 'gst':
+                    row.cells[-1].text = f"{location.gst_amount:,.2f}"
+                    row.cells[-1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    row.cells[-1].vertical_alignment = WD_ALIGN_VERTICAL.CENTER  # Vertical Center
+
+                    # Keep with next (Grand Total)
+                    for cell in row.cells:
+                        for para in cell.paragraphs:
+                            para.paragraph_format.keep_with_next = True
+                    
+                elif row_type == 'grand_total':
+                    row.cells[-1].text = f"{location.grand_total:,.2f}"
+                    
+                    # Style Grand Total: RED Background, White Bold Text
+                    for cell in row.cells:
+                        # Set Red Background
+                        set_cell_background(cell, 'C00000') # Dark Red
+                        
+                        # Set Text to White and Bold
+                        for para in cell.paragraphs:
+                            for run in para.runs:
+                                run.font.bold = True
+                                run.font.color.rgb = RGBColor(255, 255, 255)
+                    
+                    # Center the Grand Total value specifically and set font size
+                    p = row.cells[-1].paragraphs[0]
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    row.cells[-1].vertical_alignment = WD_ALIGN_VERTICAL.CENTER  # Vertical Center
+                    for run in p.runs:
+                        run.font.size = Pt(12)
     
     def _create_pricing_table_structure(self, table, location):
         """Create a pricing table structure for a location with proper styling"""
@@ -396,7 +484,7 @@ class QuotationDocxGenerator:
         subtotal_label.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
         subtotal_label.paragraphs[0].runs[0].font.bold = True
         
-        subtotal_row.cells[3].text = f"₹ {location.subtotal:,.2f}"
+        subtotal_row.cells[3].text = f"{location.subtotal:,.2f}"
         subtotal_row.cells[3].paragraphs[0].runs[0].font.bold = True
         
         # Add GST row
@@ -404,14 +492,14 @@ class QuotationDocxGenerator:
         gst_label = gst_row.cells[0].merge(gst_row.cells[1]).merge(gst_row.cells[2])
         gst_label.text = "GST @ 18%"
         gst_label.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        gst_row.cells[3].text = f"₹ {location.gst_amount:,.2f}"
+        gst_row.cells[3].text = f"{location.gst_amount:,.2f}"
         
         # Add grand total row
         total_row = table.add_row()
         total_label = total_row.cells[0].merge(total_row.cells[1]).merge(total_row.cells[2])
         total_label.text = "GRAND TOTAL"
         total_label.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        total_row.cells[3].text = f"₹ {location.grand_total:,.2f}"
+        total_row.cells[3].text = f"{location.grand_total:,.2f}"
         
         # Style Grand Total: Red background, White bold text
         for cell in total_row.cells:

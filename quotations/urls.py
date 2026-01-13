@@ -11,7 +11,6 @@ urlpatterns = [
     
     # Create and update
     path('create/', views.quotation_create, name='quotation_create'),
-    path('<int:pk>/edit/', views.quotation_update, name='quotation_update'),
     
     # Document downloads
     path('<int:pk>/download-docx/', views.download_docx, name='download_docx'),
@@ -21,5 +20,13 @@ urlpatterns = [
     path('<int:pk>/send-email/', views.send_email, name='send_email'),
     
     # AJAX endpoints
-    path('clients/create/', views.client_create_ajax, name='client_create_ajax'),
+    # AJAX endpoints
+    path('api/clients/create/', views.client_create_ajax, name='client_create_ajax'),
+    
+    # Client Management
+    path('clients/', views.client_list, name='client_list'),
+    path('clients/create/', views.client_create, name='client_create'),
+    path('clients/<int:pk>/', views.client_detail, name='client_detail'),
+    path('clients/<int:pk>/edit/', views.client_update, name='client_update'),
+    path('clients/<int:pk>/toggle-status/', views.client_toggle_status, name='client_toggle_status'),
 ]

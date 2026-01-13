@@ -45,32 +45,22 @@ document.addEventListener('DOMContentLoaded', function () {
  * Initialize client modal functionality
  */
 function initializeClientModal() {
-    const clientModal = document.getElementById('client-modal');
+    console.log('Initializing Client Modal (Bootstrap 5)');
+    const clientModalEl = document.getElementById('client-modal');
+    if (!clientModalEl) return;
+
+    // Bootstrap 5 Modal Instance
+    const clientModal = new bootstrap.Modal(clientModalEl);
     const addClientBtn = document.getElementById('add-client-btn');
     const clientForm = document.getElementById('client-form');
-    const closeButtons = document.querySelectorAll('.modal-close');
+    // Bootstrap handles close buttons with data-bs-dismiss="modal", so we don't need manual listeners for .modal-close unless we want custom logic.
+    // But we need to handle the manual open.
 
     // Open client modal
-    if (addClientBtn && clientModal) {
+    if (addClientBtn) {
         addClientBtn.addEventListener('click', function (e) {
             e.preventDefault();
-            clientModal.style.display = 'block';
-        });
-    }
-
-    // Close modal
-    if (clientModal) {
-        closeButtons.forEach(btn => {
-            btn.addEventListener('click', function () {
-                clientModal.style.display = 'none';
-            });
-        });
-
-        // Close modal on outside click
-        window.addEventListener('click', function (e) {
-            if (e.target === clientModal) {
-                clientModal.style.display = 'none';
-            }
+            clientModal.show();
         });
     }
 
@@ -85,7 +75,7 @@ function initializeClientModal() {
 
             const formData = new FormData(clientForm);
 
-            fetch('/quotations/clients/create/', {
+            fetch('/quotations/api/clients/create/', {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -103,9 +93,7 @@ function initializeClientModal() {
                         }
 
                         // Close modal and reset form
-                        if (clientModal) {
-                            clientModal.style.display = 'none';
-                        }
+                        clientModal.hide();
                         clientForm.reset();
 
                         showMessage('Client added successfully!', 'success');
@@ -169,7 +157,7 @@ function initializeLocationHandling() {
         const itemsContainer = locationGroup.querySelector('.items-container');
         const existingItems = Array.from(itemsContainer.querySelectorAll('.item-row')).filter(row => {
             const style = row.getAttribute('style') || '';
-            return !style.includes('none'); // Exclude template with display:none
+            return !row.classList.contains('item-template'); // Exclude template
         });
 
         console.log('[DEBUG] Location', locationIndex, 'has', existingItems.length, 'existing items');
@@ -234,7 +222,7 @@ function addLocation() {
 
     // Clear items container (will add items dynamically)
     const itemsContainer = newLocationGroup.querySelector('.items-container');
-    itemsContainer.querySelectorAll('.item-row:not([style*="display: none"])').forEach(row => row.remove());
+    itemsContainer.querySelectorAll('.item-row:not(.item-template)').forEach(row => row.remove());
 
     // Reset totals
     newLocationGroup.querySelector('.location-subtotal').textContent = '₹ 0.00';
@@ -280,7 +268,7 @@ function populateAllItemsForLocation(locationIndex) {
         const allItemRows = itemsContainer.querySelectorAll('.item-row');
         console.log('[POPULATE] Found', allItemRows.length, 'item rows total');
 
-        const itemTemplate = Array.from(allItemRows).find(row => row.style.display === 'none');
+        const itemTemplate = itemsContainer.querySelector('.item-template');
 
         if (!itemTemplate) {
             console.error('[POPULATE] Item template not found!');
@@ -295,6 +283,7 @@ function populateAllItemsForLocation(locationIndex) {
 
         // Clone template
         const newItem = itemTemplate.cloneNode(true);
+        newItem.classList.remove('item-template');
         newItem.style.display = '';
         newItem.setAttribute('data-row-index', index);
 
@@ -398,18 +387,19 @@ function addItemToLocation(e) {
     const itemsContainer = locationGroup.querySelector('.items-container');
 
     // Get item template
-    const itemTemplate = itemsContainer.querySelector('.item-row[style*="display: none"]');
+    const itemTemplate = itemsContainer.querySelector('.item-template');
     if (!itemTemplate) {
         console.error('No item template found');
         return;
     }
 
     // Count existing items (not deleted, not template)
-    const existingItems = itemsContainer.querySelectorAll('.item-row:not([style*="display: none"])');
+    const existingItems = itemsContainer.querySelectorAll('.item-row:not(.item-template)');
     const itemIndex = existingItems.length;
 
     // Clone template
     const newItem = itemTemplate.cloneNode(true);
+    newItem.classList.remove('item-template');
     newItem.style.display = '';
     newItem.setAttribute('data-row-index', itemIndex);
 
@@ -489,8 +479,8 @@ function updateItemManagementForm(locationIndex) {
 
     // Count visible, enabled items (exclude deleted items and disabled template)
     const visibleItems = Array.from(itemsContainer.querySelectorAll('.item-row')).filter(row => {
-        // Exclude hidden template
-        if (row.style.display === 'none') return false;
+        // Exclude template
+        if (row.classList.contains('item-template')) return false;
 
         // Exclude items with disabled inputs (template)
         const firstInput = row.querySelector('input, select');
@@ -527,11 +517,32 @@ function attachItemEventListeners(itemRow, locationIndex) {
         });
     });
 
-    // Delete checkbox
-    const deleteCheckbox = itemRow.querySelector('input[name$="-DELETE"]');
-    if (deleteCheckbox) {
-        deleteCheckbox.addEventListener('change', () => {
-            calculateLocationTotals(locationIndex);
+    // Remove button click
+    const removeBtn = itemRow.querySelector('.remove-item-btn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            // Check if this is an existing saved item (has ID)
+            const idInput = itemRow.querySelector('input[name$="-id"]');
+            const deleteCheckbox = itemRow.querySelector('input[name$="-DELETE"]');
+
+            // If it has an ID, it's saved in DB - we must mark it for deletion
+            if (idInput && idInput.value) {
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    // Hide the row visually
+                    itemRow.style.display = 'none';
+                    // Update totals
+                    calculateLocationTotals(locationIndex);
+                }
+            } else {
+                // If no ID, it's a fresh dynamic item - just remove from DOM
+                itemRow.remove();
+                // We need to update management form and totals
+                updateItemManagementForm(locationIndex);
+                calculateLocationTotals(locationIndex);
+            }
         });
     }
 }
@@ -546,14 +557,21 @@ function calculateLocationTotals(locationIndex) {
     const itemsContainer = locationGroup.querySelector('.items-container');
     let subtotal = 0;
 
-    itemsContainer.querySelectorAll('.item-row:not([style*="display: none"])').forEach(row => {
-        // Check if row is marked for deletion
+    itemsContainer.querySelectorAll('.item-row:not(.item-template)').forEach(row => {
+        // Check if row is visible (not hidden by our delete logic) - template is already excluded by querySelector
+        if (row.style.display === 'none') {
+            // It might be a deleted row
+            if (!row.querySelector('input[name$="-DELETE"]:checked')) {
+                // If not deleted but hidden and NOT template, what is it?
+                // Safe to ignore if hidden
+                return;
+            }
+        }
+
+        // Check if marked for deletion (via checkbox)
         const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
         if (deleteCheckbox && deleteCheckbox.checked) {
-            row.style.opacity = '0.5';
             return;
-        } else {
-            row.style.opacity = '1';
         }
 
         const unitCostInput = row.querySelector('.unit-cost');
@@ -615,7 +633,7 @@ function loadExistingItems() {
     // Just attach event listeners to them
     document.querySelectorAll('.location-group').forEach(locationGroup => {
         const locationIndex = locationGroup.getAttribute('data-location-index');
-        locationGroup.querySelectorAll('.item-row:not([style*="display: none"])').forEach(itemRow => {
+        locationGroup.querySelectorAll('.item-row:not(.item-template)').forEach(itemRow => {
             attachItemEventListeners(itemRow, locationIndex);
         });
     });

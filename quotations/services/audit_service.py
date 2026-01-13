@@ -78,3 +78,61 @@ def track_quotation_changes(old_instance, new_instance):
             }
     
     return changes
+
+
+def log_client_action(client, action, user=None, changes=None, ip_address=None):
+    """
+    Log a client action to the audit trail
+    
+    Args:
+        client: Client model instance
+        action: Action type (from ClientAudit.ACTION_CHOICES)
+        user: User who performed the action (optional)
+        changes: Dictionary of changes (optional)
+        ip_address: IP address of user (optional)
+        
+    Returns:
+        ClientAudit: Created audit log instance
+    """
+    from ..models import ClientAudit
+    
+    audit_log = ClientAudit.objects.create(
+        client=client,
+        action=action,
+        user=user,
+        changes=changes or {},
+        ip_address=ip_address
+    )
+    return audit_log
+
+
+def track_client_changes(old_instance, new_instance):
+    """
+    Track changes between two client instances
+    
+    Args:
+        old_instance: Previous client state
+        new_instance: New client state
+        
+    Returns:
+        dict: Dictionary of field changes
+    """
+    changes = {}
+    
+    # Fields to track
+    tracked_fields = [
+        'client_name', 'company_name', 'email', 
+        'contact_number', 'address', 'is_active'
+    ]
+    
+    for field in tracked_fields:
+        old_value = getattr(old_instance, field, None)
+        new_value = getattr(new_instance, field, None)
+        
+        if old_value != new_value:
+            changes[field] = {
+                'old': str(old_value),
+                'new': str(new_value)
+            }
+    
+    return changes

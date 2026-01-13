@@ -16,7 +16,7 @@ env/
 .venv/
 
 # IDEs
-.vscode/
+# .vscode/
 .idea/
 
 # Static/Media

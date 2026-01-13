@@ -52,20 +52,23 @@ class QuotationPdfGenerator:
             if not libreoffice_exe:
                 raise FileNotFoundError("LibreOffice not found. Please install LibreOffice.")
             
-            # Run conversion command
+            # Run conversion command with flags for faster processing
             command = [
                 libreoffice_exe,
                 '--headless',
                 '--convert-to', 'pdf',
                 '--outdir', output_dir,
+                '--norestore',  # Don't restore previous session
+                '--nolockcheck',  # Skip lock file checks
                 self.docx_path
             ]
             
+            # Increased timeout to 60s for first-time startup
             result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=60
             )
             
             if result.returncode != 0:
@@ -87,7 +90,11 @@ class QuotationPdfGenerator:
                 "Please install LibreOffice from https://www.libreoffice.org/"
             )
         except subprocess.TimeoutExpired:
-            raise Exception("PDF conversion timed out")
+            raise Exception(
+                "PDF conversion timed out after 60 seconds. "
+                "LibreOffice may be taking too long to start. "
+                "Try running the conversion again."
+            )
         except Exception as e:
             raise Exception(f"PDF generation failed: {str(e)}")
 

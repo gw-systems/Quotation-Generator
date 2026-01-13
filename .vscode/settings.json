@@ -1,0 +1,14 @@
+{
+    "git.ignoreLimitWarning": true,
+    "files.associations": {
+        "*.html": "django-html"
+    },
+    "[django-html]": {
+        "editor.defaultFormatter": null,
+        "editor.formatOnSave": false
+    },
+    "html.format.enable": false,
+    "emmet.includeLanguages": {
+        "django-html": "html"
+    }
+}

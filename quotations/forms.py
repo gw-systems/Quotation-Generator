@@ -5,6 +5,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from decimal import Decimal, InvalidOperation
 from .models import Client, Quotation, QuotationLocation, QuotationItem
+from django.db import models
 
 
 class ClientForm(forms.ModelForm):
@@ -123,9 +124,16 @@ class QuotationForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Set default validity period
+        # Filter only active clients for new quotations
         if not self.instance.pk:
+            self.fields['client'].queryset = Client.objects.filter(is_active=True)
             self.fields['validity_period'].initial = 30
+        else:
+            # For existing quotations, include the current client even if inactive
+            current_client_id = self.instance.client_id
+            self.fields['client'].queryset = Client.objects.filter(
+                models.Q(is_active=True) | models.Q(id=current_client_id)
+            )
     
     def clean_validity_period(self):
         """Validate validity period"""

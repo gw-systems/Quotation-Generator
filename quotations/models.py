@@ -15,6 +15,11 @@ class Client(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Active",
+        help_text="Designates whether this client should be treated as active. Unselect this instead of deleting accounts."
+    )
     
     class Meta:
         ordering = ['-created_at']
@@ -23,6 +28,60 @@ class Client(models.Model):
     
     def __str__(self):
         return f"{self.client_name} - {self.company_name}"
+
+
+class ClientAudit(models.Model):
+    """Audit trail for client actions"""
+    
+    ACTION_CHOICES = [
+        ('created', 'Created'),
+        ('modified', 'Modified'),
+        ('status_changed', 'Status Changed'),
+    ]
+    
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='audit_logs',
+        verbose_name="Client"
+    )
+    
+    action = models.CharField(
+        max_length=50,
+        choices=ACTION_CHOICES,
+        verbose_name="Action"
+    )
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="User"
+    )
+    
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Timestamp")
+    
+    # Store detailed change information
+    changes = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Changes",
+        help_text="Detailed information about what changed"
+    )
+    
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name="IP Address"
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = "Client Audit Log"
+        verbose_name_plural = "Client Audit Logs"
+    
+    def __str__(self):
+        return f"{self.client.client_name} - {self.get_action_display()} by {self.user} at {self.timestamp}"
 
 
 class Quotation(models.Model):
@@ -107,13 +166,13 @@ class Quotation(models.Model):
     
     @property
     def subtotal(self):
-        """Calculate subtotal of all items"""
-        return sum(item.total for item in self.items.all())
+        """Calculate subtotal of all locations"""
+        return sum(location.subtotal for location in self.locations.all())
     
     @property
     def gst_amount(self):
-        """Calculate GST @ 18%"""
-        return self.subtotal * Decimal('0.18')
+        """Calculate GST of all locations"""
+        return sum(location.gst_amount for location in self.locations.all())
     
     @property
     def grand_total(self):
