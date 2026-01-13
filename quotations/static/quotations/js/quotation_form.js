@@ -298,17 +298,31 @@ function populateAllItemsForLocation(locationIndex) {
 
         // Set the item description
         const itemDescSelect = newItem.querySelector('.item-description');
-        if (itemDescSelect) {
-            itemDescSelect.innerHTML = '';
-            ITEM_CHOICES.forEach(([choiceValue, choiceLabel]) => {
-                const option = document.createElement('option');
-                option.value = choiceValue;
-                option.textContent = choiceLabel;
-                if (choiceValue === value) {
-                    option.selected = true;
+        const itemDescText = newItem.querySelector('.item-description-text');
+        const storageUnitTypeSelect = newItem.querySelector('.storage-unit-type');
+
+        if (itemDescSelect && itemDescText) {
+            // Set the hidden field value
+            itemDescSelect.value = value;
+
+            // For storage_charges, show simplified text and enable unit type dropdown
+            if (value === 'storage_charges') {
+                itemDescText.textContent = 'Storage Charges';
+                // Show and enable the unit type dropdown
+                if (storageUnitTypeSelect) {
+                    storageUnitTypeSelect.style.display = 'block';
+                    storageUnitTypeSelect.disabled = false;
+                    storageUnitTypeSelect.value = 'per_pallet'; // Default value
                 }
-                itemDescSelect.appendChild(option);
-            });
+            } else {
+                // For other items, show the full label
+                itemDescText.textContent = label;
+                // Hide the unit type dropdown
+                if (storageUnitTypeSelect) {
+                    storageUnitTypeSelect.style.display = 'none';
+                    storageUnitTypeSelect.disabled = true;
+                }
+            }
         }
 
         // Set default values - leave empty (backend will convert to "at actual")
@@ -407,16 +421,16 @@ function addItemToLocation(e) {
     const prefix = `locations-${locationIndex}-items-${itemIndex}`;
     updateItemFormPrefix(newItem, prefix);
 
-    // Populate item description dropdown
+    // Populate item description - set to empty/placeholder initially
     const itemDescSelect = newItem.querySelector('.item-description');
-    if (itemDescSelect) {
-        itemDescSelect.innerHTML = '<option value="">---------</option>';
-        ITEM_CHOICES.forEach(([value, label]) => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = label;
-            itemDescSelect.appendChild(option);
-        });
+    const itemDescText = newItem.querySelector('.item-description-text');
+
+    if (itemDescSelect && itemDescText) {
+        // Leave empty - user would need to manually set if needed
+        itemDescSelect.value = '';
+        itemDescText.textContent = '(Select item type)';
+        itemDescText.style.fontStyle = 'italic';
+        itemDescText.style.color = '#6c757d';
     }
 
     // Clear values

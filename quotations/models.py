@@ -284,6 +284,23 @@ class QuotationItem(models.Model):
         verbose_name="Item Description"
     )
     
+    # Unit type for storage charges (only applicable when item_description is 'storage_charges')
+    storage_unit_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('per_sqft', 'per sq.ft per month'),
+            ('per_pallet', 'per pallet per month'),
+            ('per_unit', 'per unit per month'),
+            ('per_lumpsum', 'per lumpsum per month'),
+            ('per_order', 'per order per month'),
+        ],
+        blank=True,
+        null=True,
+        default='per_pallet',
+        verbose_name="Storage Unit Type",
+        help_text="Unit type for storage charges"
+    )
+    
     unit_cost = models.CharField(
         max_length=50,
         verbose_name="Unit Cost (₹)",
@@ -354,6 +371,8 @@ class QuotationItem(models.Model):
     @property
     def display_description(self):
         """Get description to display"""
+        if self.item_description == 'storage_charges' and self.storage_unit_type:
+            return f"Storage Charges ({self.get_storage_unit_type_display()})"
         return self.get_item_description_display()
 
 

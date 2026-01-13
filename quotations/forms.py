@@ -157,11 +157,15 @@ class QuotationItemForm(forms.ModelForm):
     
     class Meta:
         model = QuotationItem
-        fields = ['item_description', 'unit_cost', 'quantity', 'order']
+        fields = ['item_description', 'storage_unit_type', 'unit_cost', 'quantity', 'order']
         widgets = {
             'item_description': forms.Select(attrs={
                 'class': 'form-control item-description',
                 'required': True
+            }),
+            'storage_unit_type': forms.Select(attrs={
+                'class': 'form-select form-select-sm mt-1 storage-unit-type',
+                'style': 'display: none;'
             }),
             'unit_cost': forms.TextInput(attrs={
                 'class': 'form-control unit-cost',
