@@ -531,9 +531,17 @@ function updateItemManagementForm(locationIndex) {
  * Attach event listeners to item inputs
  */
 function attachItemEventListeners(itemRow, locationIndex) {
-    // Unit cost and quantity inputs
-    itemRow.querySelectorAll('.unit-cost, .quantity').forEach(input => {
-        input.addEventListener('input', () => {
+    // Unit cost, quantity and total inputs
+    itemRow.querySelectorAll('.unit-cost, .quantity, .item-total').forEach(input => {
+        input.addEventListener('input', (e) => {
+            // Track which field was last changed
+            input.setAttribute('data-last-edited', 'true');
+            // Remove last-edited from siblings in the same row
+            const siblings = input.closest('.item-row').querySelectorAll('.unit-cost, .quantity, .item-total');
+            siblings.forEach(s => {
+                if (s !== input) s.removeAttribute('data-last-edited');
+            });
+
             validateNumberInput({ target: input });
             calculateLocationTotals(locationIndex);
         });
@@ -627,23 +635,69 @@ function calculateLocationTotals(locationIndex) {
         if (unitCostInput && quantityInput && totalInput) {
             let unitCostValue = unitCostInput.value.trim();
             let quantityValue = quantityInput.value.trim();
+            let totalValue = totalInput.value.trim();
 
-            // Check for 'at actual' values (empty values are treated as 'at actual')
-            const isUnitCostAtActual = !unitCostValue || unitCostValue === '0' || unitCostValue === '0.00' || unitCostValue.toLowerCase() === 'at actual';
-            const isQuantityAtActual = !quantityValue || quantityValue === '0' || quantityValue === '0.00' || quantityValue.toLowerCase() === 'at actual';
+            const unitCost = parseFloat(unitCostValue);
+            const quantity = parseFloat(quantityValue);
+            const total = parseFloat(totalValue);
 
-            // If either field is 'at actual', total is N/A
-            if (isUnitCostAtActual || isQuantityAtActual) {
-                totalInput.value = 'N/A';
-                return; // Skip this row in calculations
+            const hasUC = !isNaN(unitCost) && unitCostValue !== '';
+            const hasQ = !isNaN(quantity) && quantityValue !== '';
+            const hasT = !isNaN(total) && totalValue !== '';
+
+            // Triplet Logic
+            if (hasUC && hasQ && unitCostInput.hasAttribute('data-last-edited')) {
+                const calculatedTotal = unitCost * quantity;
+                totalInput.value = calculatedTotal.toFixed(2);
+                subtotal += calculatedTotal;
+            } else if (hasUC && hasQ && quantityInput.hasAttribute('data-last-edited')) {
+                const calculatedTotal = unitCost * quantity;
+                totalInput.value = calculatedTotal.toFixed(2);
+                subtotal += calculatedTotal;
+            } else if (hasUC && hasT && totalInput.hasAttribute('data-last-edited')) {
+                if (unitCost !== 0) {
+                    const calculatedQ = total / unitCost;
+                    quantityInput.value = calculatedQ.toFixed(2);
+                }
+                subtotal += total;
+            } else if (hasQ && hasT && totalInput.hasAttribute('data-last-edited')) {
+                if (quantity !== 0) {
+                    const calculatedUC = total / quantity;
+                    unitCostInput.value = calculatedUC.toFixed(2);
+                }
+                subtotal += total;
+            } else if (hasUC && hasT && unitCostInput.hasAttribute('data-last-edited')) {
+                if (unitCost !== 0) {
+                    const calculatedQ = total / unitCost;
+                    quantityInput.value = calculatedQ.toFixed(2);
+                }
+                subtotal += total;
+            } else if (hasQ && hasT && quantityInput.hasAttribute('data-last-edited')) {
+                if (quantity !== 0) {
+                    const calculatedUC = total / quantity;
+                    unitCostInput.value = calculatedUC.toFixed(2);
+                }
+                subtotal += total;
+            } else if (hasUC && hasQ) {
+                // Default fallback
+                const calculatedTotal = unitCost * quantity;
+                totalInput.value = calculatedTotal.toFixed(2);
+                subtotal += calculatedTotal;
+            } else if (hasT) {
+                // If only total exists, still add to subtotal
+                subtotal += total;
+            } else {
+                // Less than 2 values or reset
+                // Only clear if not already manually cleared or "at actual"
+                const isUnitCostAtActual = !unitCostValue || unitCostValue === '0' || unitCostValue === '0.00' || unitCostValue.toLowerCase() === 'at actual';
+                const isQuantityAtActual = !quantityValue || quantityValue === '0' || quantityValue === '0.00' || quantityValue.toLowerCase() === 'at actual';
+                const isTotalAtActual = !totalValue || totalValue === '0' || totalValue === '0.00' || totalValue.toLowerCase() === 'at actual';
+
+                // User wanted blank instead of N/A
+                if ((isUnitCostAtActual || isQuantityAtActual) && !hasT) {
+                    totalInput.value = '';
+                }
             }
-
-            const unitCost = parseFloat(unitCostValue) || 0;
-            const quantity = parseFloat(quantityValue) || 0;
-            const total = unitCost * quantity;
-
-            totalInput.value = total.toFixed(2);
-            subtotal += total;
         }
     });
 
@@ -831,6 +885,14 @@ function validateNumberInput(e) {
     if (input.classList.contains('quantity')) {
         if (value <= 0) {
             showFieldError(input, 'Must be greater than 0');
+        } else {
+            clearFieldError(input);
+        }
+    }
+
+    if (input.classList.contains('item-total')) {
+        if (value < 0) {
+            showFieldError(input, 'Must be positive');
         } else {
             clearFieldError(input);
         }

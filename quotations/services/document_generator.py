@@ -367,7 +367,7 @@ class QuotationDocxGenerator:
         if item.is_calculated:
             format_cell(cells[3], f"{item.total:,.2f}", 'CENTER')
         else:
-            format_cell(cells[3], "N/A", 'CENTER')
+            format_cell(cells[3], "", 'CENTER')
     
     def _update_totals_in_table(self, table, location):
         """Update subtotal, GST, and grand total rows"""

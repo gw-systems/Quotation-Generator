@@ -113,7 +113,7 @@
                             <td>{{ item.display_description }}</td>
                             <td class="text-end">{{ item.unit_cost }}</td>
                             <td class="text-end">{{ item.quantity }}</td>
-                            <td class="text-end fw-medium">{% if item.is_calculated %}{{ item.total|floatformat:2 }}{% else %}N/A{% endif %}</td>
+                            <td class="text-end fw-medium">{% if item.is_calculated %}{{ item.total|floatformat:2 }}{% else %}{% endif %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
