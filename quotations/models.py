@@ -284,14 +284,6 @@ class QuotationItem(models.Model):
         verbose_name="Item Description"
     )
     
-    custom_description = models.CharField(
-        max_length=500,
-        blank=True,
-        null=True,
-        verbose_name="Custom Description",
-        help_text="Optional custom description override"
-    )
-    
     unit_cost = models.CharField(
         max_length=50,
         verbose_name="Unit Cost (₹)",
@@ -361,8 +353,8 @@ class QuotationItem(models.Model):
     
     @property
     def display_description(self):
-        """Get description to display (custom or default)"""
-        return self.custom_description or self.get_item_description_display()
+        """Get description to display"""
+        return self.get_item_description_display()
 
 
 class QuotationAudit(models.Model):

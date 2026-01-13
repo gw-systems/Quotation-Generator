@@ -134,15 +134,17 @@ QUOTATION_NUMBER_PREFIX = 'GW-Q-'
 DEFAULT_VALIDITY_PERIOD = 30  # days
 DEFAULT_GST_RATE = 18  # percentage
 
-# Email configuration (to be configured later)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Console backend for development
-# Production settings to be added later:
-# EMAIL_HOST = 'smtp.example.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your-email@example.com'
-# EMAIL_HOST_PASSWORD = 'your-password'
-# DEFAULT_FROM_EMAIL = 'quotations@godamwale.com'
+# Email configuration
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@godamwale.com')
+
+# Email timeout settings
+EMAIL_TIMEOUT = 30  # seconds
 
 # Login configuration
 LOGIN_REDIRECT_URL = '/quotations/'

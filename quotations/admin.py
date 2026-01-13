@@ -25,7 +25,7 @@ class QuotationItemInline(admin.TabularInline):
     """Inline admin for QuotationItem"""
     model = QuotationItem
     extra = 1
-    fields = ('item_description', 'custom_description', 'unit_cost', 'quantity', 'total', 'order')
+    fields = ('item_description', 'unit_cost', 'quantity', 'total', 'order')
     readonly_fields = ('total',)
     ordering = ('order',)
 
@@ -70,7 +70,7 @@ class QuotationItemAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Item Details', {
-            'fields': ('quotation', 'item_description', 'custom_description', 'unit_cost', 'quantity', 'total', 'order')
+            'fields': ('quotation', 'item_description', 'unit_cost', 'quantity', 'total', 'order')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -103,3 +103,31 @@ class QuotationAuditAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Prevent deletion of audit logs"""
         return False
+
+
+# Customize User admin to emphasize email
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+# Unregister existing User admin
+admin.site.unregister(User)
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    """Enhanced User admin with email emphasis"""
+    
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
+    
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {
+            'fields': ('first_name', 'last_name', 'email'),
+            'description': 'Email is required for users who create quotations.'
+        }),
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+        }),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )

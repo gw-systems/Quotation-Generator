@@ -63,7 +63,7 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">{{ quotation_form.validity_period.label }} (Days)</label>
+                            <label class="form-label">{{ quotation_form.validity_period.label }}</label>
                             {{ quotation_form.validity_period }}
                             {% if quotation_form.validity_period.errors %}
                             <div class="text-danger small mt-1">{{ quotation_form.validity_period.errors|first }}</div>
@@ -136,16 +136,11 @@
 
                         {# Initial empty structure for template cloning #}
                         <div class="item-row item-template row g-2 align-items-end mb-2 pb-2 border-bottom" data-row-index="0" style="display:none;">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label small text-muted mb-1">Description</label>
                                 <select name="__prefix__-item_description" class="form-control form-control-sm item-description" disabled></select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small text-muted mb-1">Custom Description</label>
-                                <input type="text" name="__prefix__-custom_description" class="form-control form-control-sm"
-                                    placeholder="Optional" disabled>
-                            </div>
-                            <div class="col-md-2">
                                 <label class="form-label small text-muted mb-1">Unit Cost (₹)</label>
                                 <input type="text" name="__prefix__-unit_cost" class="form-control form-control-sm unit-cost"
                                     placeholder="At actual" disabled>
@@ -155,7 +150,7 @@
                                 <input type="text" name="__prefix__-quantity" class="form-control form-control-sm quantity"
                                     placeholder="At actual" disabled>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <label class="form-label small text-muted mb-1">Total</label>
                                 <input type="text" class="form-control form-control-sm item-total bg-light" readonly value="0.00" disabled>
                             </div>
