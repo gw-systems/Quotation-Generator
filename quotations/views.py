@@ -269,9 +269,15 @@ def quotation_create(request):
                     if i < len(location_forms):
                         location_instance = location_forms[i].instance
                         item_formset.instance = location_instance
-                        items_saved = item_formset.save(commit=True)
-                        print(f"[SAVE] Location {i} ({location_instance.location_name}): Saved {len(items_saved)} items")
-                        for item in items_saved:
+                        
+                        # Save items with commit=False first to set quotation_id
+                        items = item_formset.save(commit=False)
+                        for item in items:
+                            item.quotation = quotation  # Set quotation_id
+                            item.save()
+                        
+                        print(f"[SAVE] Location {i} ({location_instance.location_name}): Saved {len(items)} items")
+                        for item in items:
                             print(f"  - {item.display_description}: cost={item.unit_cost}, qty={item.quantity}")
                 
                 # Log audit trail

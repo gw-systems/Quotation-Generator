@@ -268,14 +268,12 @@ class QuotationItem(models.Model):
         blank=True
     )
     
-    # Keep quotation FK temporarily for migration
+    # Required: Every item must belong to a quotation
     quotation = models.ForeignKey(
         Quotation,
         on_delete=models.CASCADE,
         related_name='items',
-        verbose_name="Quotation",
-        null=True,  # Made nullable for migration
-        blank=True
+        verbose_name="Quotation"
     )
     
     item_description = models.CharField(
